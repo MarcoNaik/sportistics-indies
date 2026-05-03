@@ -23,7 +23,7 @@ Reglas:
   model: {
     model: 'openai/gpt-5-mini',
     temperature: 0.4,
-    maxTokens: 512,
+    maxTokens: 1024,
   },
   tools: ['get_replacement_candidates', 'set_availability', 'voice.call'],
 })

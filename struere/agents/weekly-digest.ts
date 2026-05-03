@@ -9,22 +9,22 @@ export default defineAgent({
 
 Hora actual: {{currentTime}}
 
-Pasos:
-1. Calcula la ventana: from = lunes 00:00 de esta semana (hace 7 días), to = ahora.
-2. query_events_range({ from, to }) → eventos de la semana.
-3. entity.query type=club-match status=active → todos los partidos; filtra finished con date dentro de la ventana, y scheduled con date futuro próximo.
-4. entity.query type=training-session status=active → sesiones; filtra las de la ventana.
-5. entity.query type=player status=active → plantel.
-6. build_digest({ events, matches, trainingSessions, players }) → te devuelve { body } en markdown.
-7. email.send({ to: <email del coach desde threadContext.params.coachEmail si está, sino "coach@sportistics.dev">, subject: "Resumen semanal Sportistics", text: body }).
+Pasos (sigue exactamente):
+1. Calcula la ventana ISO: from = hace 7 días desde {{currentTime}} a las 00:00:00Z, to = {{currentTime}}.
+2. Llama a build_digest({ from, to }). Te devuelve { body, counts }.
+3. Llama a email.send({ to: <email del coach>, subject: "Resumen semanal Sportistics", text: body }). El email destino está en threadContext.params.coachEmail; si está vacío o no es un email válido (debe contener "@"), usa "coach@sportistics.dev".
+4. Responde al usuario con UNA frase: "Digest enviado. <counts.finishedMatches> partidos jugados, <counts.upcomingMatches> próximos, <counts.painReports> reportes de dolor."
 
-Responde en español. Sé breve en tu razonamiento — el output real es el email.`,
+Reglas:
+- Las fechas en formato ISO 8601 (YYYY-MM-DDTHH:mm:ssZ).
+- No calcules estadísticas tú mismo: build_digest lo hace.
+- No llames a entity.query ni query_events_range — build_digest hace todas las consultas.`,
   model: {
     model: 'openai/gpt-5-mini',
     temperature: 0.3,
     maxTokens: 2048,
   },
-  tools: ['query_events_range', 'build_digest', 'entity.query', 'email.send'],
+  tools: ['build_digest', 'email.send'],
   threadContextParams: [
     { name: 'coachEmail', type: 'string', required: false, description: 'Email destino del digest. Si no se da, default coach@sportistics.dev' },
   ],
