@@ -1,4 +1,4 @@
-import { StruereClient, type Entity } from 'struere/client'
+import { StruereClient, type ChatResponse, type Entity } from 'struere/client'
 import type { Player, ClubMatch, MatchCallup, TrainingSession, VolleyballEvent } from '../domain/types'
 import * as Callup from '../domain/callup'
 import type { CallupRow } from '../domain/callup'
@@ -179,6 +179,10 @@ export const struere = {
   callup,
   trainingSession,
   volleyballEvent,
+}
+
+export function chat(params: { agentSlug: string; message: string; threadId?: string }): Promise<ChatResponse> {
+  return client.chat(params)
 }
 
 export { toData }
