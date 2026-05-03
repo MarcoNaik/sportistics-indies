@@ -79,32 +79,73 @@ export default defineTools([
       },
     },
     handler: async (args, context, struere, fetch) => {
-      const filters: Record<string, unknown> = {}
-      if (args.matchId) filters.matchId = args.matchId
-      if (args.playerId) filters.playerId = args.playerId
-      if (args.fromDate || args.toDate) {
-        const range: Record<string, unknown> = {}
-        if (args.fromDate) range._op_gte = args.fromDate
-        if (args.toDate) range._op_lte = args.toDate
-        filters.createdAt = range
-      }
-      const page = await struere.entity.query({ type: 'volleyball-event', filters, limit: 1000, status: 'active' })
-      const events: any[] = page.data ?? page
+      const page = await struere.entity.query({ type: 'volleyball-event', limit: 1000, status: 'active' })
+      const rows: any[] = page.data ?? page
+      const events = rows.map((e) => ({ id: e.id, ...(e.data ?? e) }))
+      const matchId = args.matchId as string | undefined
+      const playerId = args.playerId as string | undefined
+      const fromDate = args.fromDate as string | undefined
+      const toDate = args.toDate as string | undefined
+      const filtered = events.filter((e: any) => {
+        if (matchId && e.matchId !== matchId) return false
+        if (playerId && e.playerId !== playerId) return false
+        if (fromDate && (e.createdAt ?? '') < fromDate) return false
+        if (toDate && (e.createdAt ?? '') > toDate) return false
+        return true
+      })
       const byPlayer: Record<string, { playerId: string; playerName?: string; points: number; kills: number; aces: number; errors: number; total: number }> = {}
-      for (const e of events) {
-        const data = e.data ?? e
-        const pid = data.playerId
+      for (const e of filtered as any[]) {
+        const pid = e.playerId
         if (!pid) continue
-        const bucket = byPlayer[pid] ?? { playerId: pid, playerName: data.playerName, points: 0, kills: 0, aces: 0, errors: 0, total: 0 }
+        const bucket = byPlayer[pid] ?? { playerId: pid, playerName: e.playerName, points: 0, kills: 0, aces: 0, errors: 0, total: 0 }
         bucket.total += 1
-        if (data.actionType === 'point') bucket.points += 1
-        if (data.result === 'kill') bucket.kills += 1
-        if (data.result === 'ace') bucket.aces += 1
-        if (data.result === 'error') bucket.errors += 1
+        if (e.actionType === 'point') bucket.points += 1
+        if (e.result === 'kill') bucket.kills += 1
+        if (e.result === 'ace') bucket.aces += 1
+        if (e.result === 'error') bucket.errors += 1
         byPlayer[pid] = bucket
       }
       const ranked = Object.values(byPlayer).sort((a, b) => b.points - a.points)
-      return { count: events.length, byPlayer: ranked }
+      return { count: filtered.length, byPlayer: ranked }
+    },
+  },
+
+  {
+    name: 'list_players',
+    description: 'List players, optionally filtered by data.status (active | injured | inactive). Returns id, name, number, position, category, status, phone, guardianPhone for each player.',
+    parameters: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', enum: ['active', 'injured', 'inactive'], description: 'Filter by player status. Omit to list all players.' },
+      },
+    },
+    handler: async (args, context, struere, fetch) => {
+      const page = await struere.entity.query({ type: 'player', limit: 500, status: 'active' })
+      const rows: any[] = page.data ?? page
+      const players = rows.map((e) => ({ id: e.id, ...(e.data ?? e) }))
+      const status = args.status as string | undefined
+      const filtered = status ? players.filter((p) => p.status === status) : players
+      return { count: filtered.length, players: filtered }
+    },
+  },
+
+  {
+    name: 'list_matches',
+    description: 'List club matches, optionally filtered by data.status (scheduled | live | finished). Sorted by date ascending. Useful to find the next scheduled match or the most recent finished match.',
+    parameters: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', enum: ['scheduled', 'live', 'finished'], description: 'Filter by match status' },
+      },
+    },
+    handler: async (args, context, struere, fetch) => {
+      const page = await struere.entity.query({ type: 'club-match', limit: 500, status: 'active' })
+      const rows: any[] = page.data ?? page
+      const matches = rows.map((e) => ({ id: e.id, ...(e.data ?? e) }))
+      const status = args.status as string | undefined
+      const filtered = status ? matches.filter((m) => m.status === status) : matches
+      filtered.sort((a, b) => (a.date ?? '').localeCompare(b.date ?? ''))
+      return { count: filtered.length, matches: filtered }
     },
   },
 
@@ -235,7 +276,7 @@ export default defineTools([
       const usedIds = new Set<string>((callupPage.data ?? callupPage).map((e: any) => (e.data ?? e).playerId))
       const playersPage = await struere.entity.query({ type: 'player', limit: 500, status: 'active' })
       const players = (playersPage.data ?? playersPage).map((e: any) => ({ id: e.id, ...(e.data ?? e) }))
-      const candidates = players.filter((p: any) => !usedIds.has(p.id))
+      const candidates = players.filter((p: any) => p.status === 'active' && !usedIds.has(p.id))
       return { count: candidates.length, candidates }
     },
   },
@@ -254,40 +295,51 @@ export default defineTools([
     handler: async (args, context, struere, fetch) => {
       const from = args.from as string
       const to = args.to as string
-      const page = await struere.entity.query({
-        type: 'volleyball-event',
-        filters: { createdAt: { _op_gte: from, _op_lte: to } },
-        limit: 1000,
-        status: 'active',
+      const page = await struere.entity.query({ type: 'volleyball-event', limit: 1000, status: 'active' })
+      const rows: any[] = page.data ?? page
+      const events = rows.map((e) => ({ id: e.id, ...(e.data ?? e) })).filter((e: any) => {
+        const ts = e.createdAt ?? ''
+        return ts >= from && ts <= to
       })
-      const events = (page.data ?? page).map((e: any) => ({ id: e.id, ...(e.data ?? e) }))
       return { count: events.length, events }
     },
   },
 
   {
     name: 'build_digest',
-    description: 'Pure formatter. Given the week\'s events, finished matches, training sessions, and players, returns a markdown digest body. No I/O.',
+    description: 'Compile the weekly digest body. Pulls events, matches, training sessions, and players itself. Returns { body } in markdown. Pass from/to as ISO timestamps to scope events and matches to the week.',
     parameters: {
       type: 'object',
       properties: {
-        events: { type: 'array', items: { type: 'object' } },
-        matches: { type: 'array', items: { type: 'object' } },
-        trainingSessions: { type: 'array', items: { type: 'object' } },
-        players: { type: 'array', items: { type: 'object' } },
+        from: { type: 'string', description: 'ISO timestamp lower bound (inclusive) of the week window' },
+        to: { type: 'string', description: 'ISO timestamp upper bound (inclusive) of the week window' },
       },
-      required: ['events', 'matches', 'trainingSessions', 'players'],
+      required: ['from', 'to'],
     },
     handler: async (args, context, struere, fetch) => {
-      const events = args.events as any[]
-      const matches = args.matches as any[]
-      const trainingSessions = args.trainingSessions as any[]
-      const players = args.players as any[]
+      const from = args.from as string
+      const to = args.to as string
+      const fromDate = from.slice(0, 10)
+      const toDate = to.slice(0, 10)
+
+      const eventsPage = await struere.entity.query({ type: 'volleyball-event', limit: 1000, status: 'active' })
+      const events = (eventsPage.data ?? eventsPage).map((e: any) => ({ id: e.id, ...(e.data ?? e) }))
+      const matchesPage = await struere.entity.query({ type: 'club-match', limit: 500, status: 'active' })
+      const matches = (matchesPage.data ?? matchesPage).map((e: any) => ({ id: e.id, ...(e.data ?? e) }))
+      const sessionsPage = await struere.entity.query({ type: 'training-session', limit: 500, status: 'active' })
+      const trainingSessions = (sessionsPage.data ?? sessionsPage).map((e: any) => ({ id: e.id, ...(e.data ?? e) }))
+      const playersPage = await struere.entity.query({ type: 'player', limit: 500, status: 'active' })
+      const players = (playersPage.data ?? playersPage).map((e: any) => ({ id: e.id, ...(e.data ?? e) }))
+
       const playerById: Record<string, any> = {}
       for (const p of players) playerById[p.id] = p
 
+      const weekEvents = events.filter((e: any) => {
+        const ts = e.createdAt ?? ''
+        return ts >= from && ts <= to
+      })
       const scorerCounts: Record<string, number> = {}
-      for (const e of events) {
+      for (const e of weekEvents as any[]) {
         if (!e.playerId) continue
         if (e.actionType === 'point' || e.result === 'kill' || e.result === 'ace') {
           scorerCounts[e.playerId] = (scorerCounts[e.playerId] ?? 0) + 1
@@ -298,11 +350,13 @@ export default defineTools([
         .slice(0, 3)
         .map(([pid, points]) => `- ${playerById[pid]?.name ?? pid}: ${points} puntos`)
 
-      const finished = matches.filter((m) => m.status === 'finished')
-      const upcoming = matches.filter((m) => m.status === 'scheduled')
+      const finished = matches.filter((m: any) => m.status === 'finished' && (m.date ?? '') >= fromDate && (m.date ?? '') <= toDate)
+      const upcoming = matches.filter((m: any) => m.status === 'scheduled' && (m.date ?? '') >= toDate)
+      upcoming.sort((a: any, b: any) => (a.date ?? '').localeCompare(b.date ?? ''))
 
+      const weekSessions = trainingSessions.filter((s: any) => (s.date ?? '') >= fromDate && (s.date ?? '') <= toDate)
       const painReports: string[] = []
-      for (const s of trainingSessions) {
+      for (const s of weekSessions as any[]) {
         for (const load of s.loads ?? []) {
           if ((load.pain ?? 0) >= 5) {
             painReports.push(`- ${playerById[load.playerId]?.name ?? load.playerId}: dolor ${load.pain}/10 (sesión ${s.date})`)
@@ -317,15 +371,23 @@ export default defineTools([
       lines.push(topScorers.length ? topScorers.join('\n') : '- Sin puntos registrados esta semana.')
       lines.push('')
       lines.push('## Partidos jugados')
-      lines.push(finished.length ? finished.map((m) => `- ${m.date} vs ${m.opponent}`).join('\n') : '- Ninguno.')
+      lines.push(finished.length ? finished.map((m: any) => `- ${m.date} vs ${m.opponent}`).join('\n') : '- Ninguno.')
       lines.push('')
       lines.push('## Jugadores con dolor reportado')
       lines.push(painReports.length ? painReports.join('\n') : '- Ninguno.')
       lines.push('')
       lines.push('## Próximos partidos')
-      lines.push(upcoming.length ? upcoming.map((m) => `- ${m.date} vs ${m.opponent}`).join('\n') : '- Ninguno agendado.')
+      lines.push(upcoming.length ? upcoming.map((m: any) => `- ${m.date} vs ${m.opponent}`).join('\n') : '- Ninguno agendado.')
 
-      return { body: lines.join('\n') }
+      return {
+        body: lines.join('\n'),
+        counts: {
+          events: weekEvents.length,
+          finishedMatches: finished.length,
+          upcomingMatches: upcoming.length,
+          painReports: painReports.length,
+        },
+      }
     },
   },
 ])
