@@ -25,6 +25,7 @@ Reglas:
     maxTokens: 2048,
   },
   tools: ['build_digest', 'email.send'],
+  roles: ['coach-bot'],
   threadContextParams: [
     { name: 'coachEmail', type: 'string', required: false, description: 'Email destino del digest. Si no se da, default coach@sportistics.dev' },
   ],

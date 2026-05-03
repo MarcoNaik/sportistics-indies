@@ -3,7 +3,6 @@ import { defineRole } from 'struere'
 export default defineRole({
   name: 'coach-bot',
   description: 'Bot del coach: lectura de todas las entidades del club, escritura solo en callup.',
-  agentAccess: ['coach-stats', 'whatsapp-callup', 'voice-suplente', 'weekly-digest'],
   policies: [
     { resource: 'player', actions: ['list', 'read'], effect: 'allow' },
     { resource: 'club-match', actions: ['list', 'read'], effect: 'allow' },

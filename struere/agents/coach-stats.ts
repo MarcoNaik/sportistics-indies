@@ -33,6 +33,7 @@ Reglas:
     maxTokens: 1024,
   },
   tools: ['list_players', 'list_matches', 'query_stats', 'query_player', 'query_match'],
+  roles: ['coach-bot'],
   firstMessageSuggestions: [
     '¿Quién marcó más puntos este mes?',
     '¿Cuántos jugadores hay activos?',

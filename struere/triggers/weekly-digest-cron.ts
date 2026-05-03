@@ -1,4 +1,4 @@
-import { defineTrigger, type TriggerConfig } from 'struere'
+import { defineTrigger } from 'struere'
 
 export default defineTrigger({
   name: 'Weekly Digest Cron',
@@ -7,7 +7,7 @@ export default defineTrigger({
   on: {
     schedule: '0 20 * * 0',
     timezone: 'America/Santiago',
-  } as unknown as TriggerConfig['on'],
+  },
   actions: [
     {
       tool: 'agent.chat',

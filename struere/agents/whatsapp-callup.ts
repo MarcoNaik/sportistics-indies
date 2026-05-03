@@ -31,7 +31,7 @@ Reglas:
   model: {
     model: 'openai/gpt-5-mini',
     temperature: 0.2,
-    maxTokens: 512,
   },
   tools: ['get_player_by_phone', 'list_matches', 'set_availability', 'whatsapp.send', 'agent.chat'],
+  roles: ['coach-bot'],
 })

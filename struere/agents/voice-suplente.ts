@@ -26,4 +26,5 @@ Reglas:
     maxTokens: 1024,
   },
   tools: ['get_replacement_candidates', 'set_availability', 'voice.call'],
+  roles: ['coach-bot'],
 })
