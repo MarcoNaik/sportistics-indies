@@ -7,20 +7,20 @@ Workshop project for HACK@LATAM and the canonical Voice Agent Cookbook reference
 
 ## What this is
 
-A volleyball-club tool for coaches (roster, schedule, callups, training-load, live events, per-player stats) built as a React + Vite + Zustand SPA on top of [Struere](https://struere.dev) — 5 entity types, 4 agents, 1 role, 12 custom tools, 1 cron trigger. Spanish UI strings, English domain types. This repo is the canonical worked example referenced from the [Struere Voice Agent Cookbook](https://docs.struere.dev/integrations/voice-cookbook): every cookbook pattern (dual-mode voice agent, sync-time lints, `agent.chat` orchestration, flat-tuple storage) is exercised here on real volleyball data.
+An everyday volleyball-club tool (roster, schedule, callups, training-load, live events, per-player stats) that today runs on in-memory mocks. The workshop walks you through replacing the mocks with a Struere-powered backend: 5 entity types, 4 agents, multi-channel orchestration (chat widget, WhatsApp inbound, voice outbound, weekly email digest). Spanish UI strings, English domain types. This branch (`main`) is the **starting point** — the PWA on mocks. By the end of the three prompts you land on `03-agent-automations`, the canonical worked example referenced from the [Struere Voice Agent Cookbook](https://docs.struere.dev/integrations/voice-cookbook).
 
 ## Branches as workshop steps
 
-The three feature branches are the three workshop steps; each is a strict extension of the previous, and `main` == `03-agent-automations`.
+`main` is **step 0** — where attendees start. Each feature branch is a strict extension of the previous; the final state is `03-agent-automations`.
 
-| Branch | Step | What's added |
+| Branch | Step | What's in it |
 |---|---|---|
-| `main` | Final state | Everything below combined (`origin/main` == `03-agent-automations`) |
-| `01-struere-setup` | Step 1 | Struere CLI installed, project scaffolded with `struere init`, `struere-developer` skill loaded |
-| `02-cloud-database` | Step 2 | 5 entity types defined; SPA rewired off mocks through the Struere SDK; `.env.example` + dev API key |
-| `03-agent-automations` | Step 3 | 4 agents + 12 tools + 1 role + 1 cron trigger + chat widget wired to `coach-stats` — equals `main` |
+| `main` | Step 0 — starting point | Volleyball PWA on in-memory mocks. No Struere yet. |
+| `01-struere-setup` | Step 1 | + Struere CLI installed and project scaffolded (Prompt 1 takes you here) |
+| `02-cloud-database` | Step 2 | + 5 entity types + SPA wired through Struere SDK (Prompt 2) |
+| `03-agent-automations` | Step 3 — final state | + 4 agents + chat widget orchestrated end-to-end (Prompt 3) |
 
-`git checkout <branch>` to see any step's state. Pair each transition with one prompt below: **Prompt 1** (`main` → `01-struere-setup`), **Prompt 2** (`01-struere-setup` → `02-cloud-database`), **Prompt 3** (`02-cloud-database` → `03-agent-automations`). The prompts are byte-identical to the live workshop's.
+`git checkout <branch>` to peek at any step's state. Pair each transition with one prompt below: **Prompt 1** (`main` → `01-struere-setup`), **Prompt 2** (`01-struere-setup` → `02-cloud-database`), **Prompt 3** (`02-cloud-database` → `03-agent-automations`). The prompts are byte-identical to the live workshop's.
 
 ## Quick start
 
@@ -28,129 +28,30 @@ The three feature branches are the three workshop steps; each is a strict extens
 git clone https://github.com/MarcoNaik/sportistics-indies.git
 cd sportistics-indies
 bun install
-cp .env.example .env.local   # fill in VITE_STRUERE_API_KEY (see "Setup walkthrough")
-bun run dev
+bun run dev    # PWA boots on mocks at http://localhost:5173
 ```
 
-The SPA boots empty on `main` — entities come from your Struere dev environment, and a fresh one has no rows. Add a Player, Match, or Training Session through the UI; reload — it persists. That's the green light.
+You land on `main` — the PWA running on in-memory mocks. Add a Player, Match, or Training Session through the UI; everything works against the mock store. Then run **Prompt 1** below to bootstrap Struere.
 
 ## Prerequisites & accounts to create
 
-Items 1–4 are mandatory for the SPA + `coach-stats`; 5–7 are for WhatsApp + voice + email agents.
-
 - [ ] **Bun ≥ 1.2** — https://bun.sh — never npm in this repo.
-- [ ] **Struere account + organization** — https://struere.dev. Pro plan (4 agents > free-tier cap).
-- [ ] **Struere CLI ≥ 0.14.8** — `bun install -g struere@latest`. 0.14.8 added sync-time lints; older versions need workarounds this material no longer covers.
-- [ ] **`struere-developer` skill** — `npx skills add MarcoNaik/struere-skill --all --yes` from repo root. SDK source of truth; the prompts assume it's loaded.
-- [ ] **Twilio account + outbound voice number** — https://twilio.com. Powers `voice-suplente`.
-- [ ] **Kapso/WhatsApp Business** — https://kapso.io. Powers `whatsapp-callup`.
-- [ ] **Resend account** — https://resend.com. Powers `email.send` for the weekly digest.
-- [ ] **OpenAI API key with Realtime API access** — for `voice-suplente`, configured org-level on Struere.
+- [ ] **Struere account + organization (Pro plan for 4+ agents)** — https://struere.dev
+- [ ] **Twilio account + outbound-capable phone number** — https://twilio.com — **(only needed for the live voice agent demo; you can complete the workshop without it)**
+- [ ] **Meta WhatsApp Business + Kapso connection** — https://kapso.io — **(only needed for the live WhatsApp agent demo)**
 
-## Setup walkthrough
+That's it. Struere provides email and the Realtime model internally.
 
-Run in order from a fresh clone.
+## Setup
 
-1. **Repo + frontend.** `bun run dev` fail-fasts until step 3 fills `VITE_STRUERE_API_KEY`. Leave it running.
-   ```bash
-   git clone https://github.com/MarcoNaik/sportistics-indies.git && cd sportistics-indies && bun install && cp .env.example .env.local && bun run dev
-   ```
-2. **Struere project + login.** `struere init` is for fresh repos; this clone has the project — use `pull`.
-   ```bash
-   struere logout && struere login
-   cd struere && struere pull && bunx struere sync
-   ```
-3. **Create the dev API key for the SPA**, then paste it into `.env.local` (gitignored — never commit).
-   ```bash
-   cd struere && bunx struere keys create --name "vite-spa-dev" --env development --json
-   # copy the `key` field → VITE_STRUERE_API_KEY=sk_... in .env.local
-   ```
-4. **Connect Twilio** (powers `voice-suplente`). Bind the number directly to the agent.
-   ```bash
-   bunx struere integration twilio --account-sid <SID> --auth-token <TOKEN> --phone-number <+E164> --agent voice-suplente --yes
-   ```
-5. **Connect WhatsApp via Kapso** (powers `whatsapp-callup`). The middle command opens a Kapso hosted setup link.
-   ```bash
-   cd struere
-   bunx struere whatsapp enable --environment development
-   bunx struere whatsapp setup --environment development
-   bunx struere whatsapp set-agent --slug whatsapp-callup --environment development
-   ```
-6. **Connect Resend** (powers `weekly-digest`).
-   ```bash
-   bunx struere integration resend --api-key <KEY> --from-email <EMAIL> --yes
-   ```
-7. **Verify.** `status` should show **4 agents, 5 entity types, 1 role, 12 tools, 1 trigger**. Sync warnings about `whatsapp.send` / `voice.call` / `email.send` are expected if you skipped a step.
-   ```bash
-   bunx struere status && bunx struere doctor
-   ```
-
-If `bunx struere sync` errors with `Access denied: you are not a member of organization X`, you logged in as the wrong account — `struere logout && struere login` again.
-
-## Domain & architecture
-
-Full glossary in [`CONTEXT.md`](./CONTEXT.md).
-
-**Five entity types** (Struere = the database; SPA + agents share one source of truth):
-
-- **Player** — roster person; `category` Sub-14|Sub-16|Sub-18|Adult (Youth requires `guardianName`+`guardianPhone`); `status` active|injured|inactive.
-- **ClubMatch** — scheduled match (`date`, `time`, `opponent`, `location`, `competition`, `status` scheduled|live|finished).
-- **Callup** — flat-tuple `(matchId, playerId, availability)`; availability pending|available|unavailable|maybe; absence-of-row = not in callup.
-- **TrainingSession** — array-of-records: one entity per session with `loads[]` (per attending player: `present`, `minutes`, `rpe`, `fatigue`, `pain`).
-- **VolleyballEvent** — match action (`actionType`, `result`, `pointFor`, `playerId`, `matchId`); `PlayerStats` is derived, never stored.
-
-**Two ADRs** (full prose in [`docs/adr/`](./docs/adr/)):
-
-- [**ADR 0001**](./docs/adr/0001-callup-availability-as-source-of-truth.md) — `MatchCallup.availability` is the only source of truth in the frontend; the old `playerIds[]` is gone.
-- [**ADR 0002**](./docs/adr/0002-flat-callup-tuples-at-storage.md) — Storage keeps Callup as one row per `(matchId, playerId)` even though in-memory it's a `Record<playerId, Availability>`. `Callup.fromRows`/`toRows` is the only mediator. TrainingSession does NOT follow this pattern (whole-session access).
-
-**Four agents** (deeper material in [`struere/CLAUDE.md`](./struere/CLAUDE.md)):
-
-- **`coach-stats`** — chat widget (read-only Spanish, every routed page); reads players/matches/events, aggregates stats on the fly.
-- **`whatsapp-callup`** — WhatsApp inbound; `voy`/`no puedo`/`capaz` → phone match → next match → updates Callup tuple → confirms.
-- **`voice-suplente`** — Twilio outbound + OpenAI Realtime; calls a non-callup active player asking "¿podés jugar?"; on yes, sets availability `available`. Single agent, dual mode (orchestrator + voice session).
-- **`weekly-digest`** — cron Sunday 20:00 `America/Santiago`; `build_digest` → `email.send` to coach.
-
-**Surprise orchestration** (the workshop closer): `whatsapp-callup` (parses "no puedo", marks `unavailable`) → `agent.chat` → `voice-suplente` (picks candidate, dials, sets `available` on yes) → next Sunday `weekly-digest` picks up the change. Four agents, one coach problem, end-to-end.
-
-## Testing the agents
-
-**`coach-stats`** (no integration deps):
 ```bash
-cd struere && bunx struere chat coach-stats --message "¿cuántos jugadores activos tengo?" --json   # expect executionMeta.toolCalls includes list_players
-```
-Or open the SPA, click the Sparkles icon (sidebar) / FAB (mobile), use a suggestion or type `¿Quién marcó más puntos?`.
-
-**`whatsapp-callup`** (needs Kapso — step 5). First update a Player's `phone` to your real E.164:
-```bash
-cd struere && bunx struere data update <player-id> --data '{"phone":"+...."}'
-# then text voy / no puedo / capaz to the connected business number
+git clone https://github.com/MarcoNaik/sportistics-indies.git
+cd sportistics-indies
+bun install
+bun run dev    # PWA boots on mocks at http://localhost:5173
 ```
 
-**`voice-suplente`** (needs Twilio — step 4). Pick an active Player NOT in the next callup, set their phone as above, then:
-```bash
-bunx struere chat voice-suplente --message "Llama a un suplente para el próximo partido"
-# or trigger via WhatsApp orchestration: reply `no puedo` from a Player IN the next callup. Phone rings 10–20s.
-```
-
-**`weekly-digest`** (needs Resend — step 6):
-```bash
-bunx struere chat weekly-digest --message "Compila el digest"   # ad-hoc
-bunx struere triggers list                                       # verify cron registered (Sun 20:00 America/Santiago)
-```
-
-## ADRs
-
-- [`docs/adr/0001-callup-availability-as-source-of-truth.md`](./docs/adr/0001-callup-availability-as-source-of-truth.md) — `MatchCallup.availability` is the only collection; `playerIds[]` was dropped because the two drifted.
-- [`docs/adr/0002-flat-callup-tuples-at-storage.md`](./docs/adr/0002-flat-callup-tuples-at-storage.md) — Storage persists `Callup` as one row per `(matchId, playerId)` so agents can update one entry atomically; the in-memory dict from ADR 0001 still holds via `fromRows`/`toRows`.
-
-## License / credits
-
-Workshop authored by Marco Gómez ([Struere](https://struere.dev)) for **HACK@LATAM** (May 15–17, 2026). Live session: Tue May 6, 8:00 AM Sydney time, online, 30 min.
-
-This repo is the canonical worked example for the [Struere Voice Agent Cookbook](https://docs.struere.dev/integrations/voice-cookbook).
-
-Built with Bun, React 19, Vite, Zustand, Tailwind 4, and Struere SDK 0.14.8.
+To kick off the workshop, open Claude Code in the repo and paste **Prompt 1** below. The prompt installs the Struere CLI, logs you in, initializes the project, and lands you at the `01-struere-setup` branch state.
 
 ## The three prompts
 
@@ -158,22 +59,12 @@ These are AI-instruction prompts you copy-paste into Claude Code (with the `stru
 
 > **Required reading before running these prompts.** Voice agents → https://docs.struere.dev/integrations/voice-cookbook ; platform gotchas (filter syntax, soft-delete, closed schema) → https://docs.struere.dev/platform/gotchas ; per-integration footguns are on each integration's page. Voice failure modes specifically: https://docs.struere.dev/integrations/voice#footguns.
 
-Branches and prompts pair 1-to-1:
-
-| Step | Branch | Prompt |
-|------|--------|--------|
-| 1 | `01-struere-setup` | Struere onboarding |
-| 2 | `02-cloud-database` | Define entities + wire SPA through Struere |
-| 3 | `03-agent-automations` | Build 4 agents + chat widget |
-
 ---
 
 ### **Prompt 1 — Struere setup**
 
 > Branch you're on: `main` → ends on `01-struere-setup`.
 > Time: ~2 min.
-
-Paste this into Claude Code (with the `struere-developer` skill installed) starting from branch `main`. The agent will land you on `01-struere-setup`.
 
 ```
 I want to set up a Struere project (https://struere.dev) — an AI agent platform where I define agents, data types, roles, and automations as TypeScript code.
@@ -217,8 +108,6 @@ Documentation: https://docs.struere.dev/llms.txt
 
 > Branch you're on: `01-struere-setup` → ends on `02-cloud-database`.
 > Time: ~5 min.
-
-Paste this into Claude Code (with the `struere-developer` skill installed) starting from branch `01-struere-setup`. The agent will land you on `02-cloud-database`.
 
 ```
 You are building the storage layer of Sportistics on Struere. Requires Struere CLI ≥ 0.14.8 — older versions need additional casts and patches that this prompt does not cover; assume 0.14.8 throughout. The frontend (Vite + React + Zustand) currently runs on in-memory mocks. After this prompt, the SPA reads and writes through Struere instead. The `struere-developer` skill at `.claude/skills/struere-developer` is the SDK source of truth — consult it for `defineData`, `entity.query` semantics, and CLI workflow. Do not duplicate skill content; reference it.
@@ -307,8 +196,6 @@ The final repo state for `02-cloud-database` matches the branch on disk. Commit 
 > Branch you're on: `02-cloud-database` → ends on `03-agent-automations`.
 > Time: ~5 min.
 
-Paste this into Claude Code (with the `struere-developer` skill installed) starting from branch `02-cloud-database`. The agent will land you on `03-agent-automations`.
-
 ```
 You are building the agent layer of Sportistics on Struere. Five entity types exist (`player`, `club-match`, `callup`, `training-session`, `volleyball-event`) and the SPA reads/writes through `src/lib/struere.ts`. Now you are adding 4 agents that act on those entities across chat, WhatsApp, voice, and cron+email — and wiring the existing chat widget in the SPA to the first one. The `struere-developer` skill at `.claude/skills/struere-developer` is the SDK source of truth — consult it for `defineAgent`, `defineTools`, `defineRole`, `defineTrigger`, and the agent runtime's tool-call shape. Do not duplicate skill content.
 
@@ -365,6 +252,88 @@ Then build, in order:
 The final repo state for `03-agent-automations` matches the branch on disk. Commit when sync is green and the smoke test passes. UI copy Spanish; identifiers English; bun, never npm; no comments in any code.
 ```
 
+## Live channel testing (optional)
+
+Both prompts get the chat widget working with no integrations connected. To exercise WhatsApp inbound and voice outbound:
+
+```bash
+# Twilio voice
+bunx struere integration twilio --account-sid <SID> --auth-token <TOKEN> \
+  --phone-number <+E164> --agent voice-suplente --yes
+
+# WhatsApp via Kapso
+bunx struere whatsapp enable --environment development
+bunx struere whatsapp setup --environment development
+bunx struere whatsapp set-agent --slug whatsapp-callup --environment development
+```
+
+See the [Struere Voice Agent Cookbook](https://docs.struere.dev/integrations/voice-cookbook) for the complete voice setup + WhatsApp routing details.
+
+## Domain & architecture
+
+Full glossary in [`CONTEXT.md`](./CONTEXT.md).
+
+**Five entity types** (Struere = the database; SPA + agents share one source of truth):
+
+- **Player** — roster person; `category` Sub-14|Sub-16|Sub-18|Adult (Youth requires `guardianName`+`guardianPhone`); `status` active|injured|inactive.
+- **ClubMatch** — scheduled match (`date`, `time`, `opponent`, `location`, `competition`, `status` scheduled|live|finished).
+- **Callup** — flat-tuple `(matchId, playerId, availability)`; availability pending|available|unavailable|maybe; absence-of-row = not in callup.
+- **TrainingSession** — array-of-records: one entity per session with `loads[]` (per attending player: `present`, `minutes`, `rpe`, `fatigue`, `pain`).
+- **VolleyballEvent** — match action (`actionType`, `result`, `pointFor`, `playerId`, `matchId`); `PlayerStats` is derived, never stored.
+
+**Two ADRs** (full prose in [`docs/adr/`](./docs/adr/)):
+
+- [**ADR 0001**](./docs/adr/0001-callup-availability-as-source-of-truth.md) — `MatchCallup.availability` is the only source of truth in the frontend; the old `playerIds[]` is gone.
+- [**ADR 0002**](./docs/adr/0002-flat-callup-tuples-at-storage.md) — Storage keeps Callup as one row per `(matchId, playerId)` even though in-memory it's a `Record<playerId, Availability>`. `Callup.fromRows`/`toRows` is the only mediator. TrainingSession does NOT follow this pattern (whole-session access).
+
+**Four agents** (deeper material in [`struere/CLAUDE.md`](./struere/CLAUDE.md)):
+
+- **`coach-stats`** — chat widget (read-only Spanish, every routed page); reads players/matches/events, aggregates stats on the fly.
+- **`whatsapp-callup`** — WhatsApp inbound; `voy`/`no puedo`/`capaz` → phone match → next match → updates Callup tuple → confirms.
+- **`voice-suplente`** — Twilio outbound + OpenAI Realtime; calls a non-callup active player asking "¿podés jugar?"; on yes, sets availability `available`. Single agent, dual mode (orchestrator + voice session).
+- **`weekly-digest`** — cron Sunday 20:00 `America/Santiago`; `build_digest` → `email.send` to coach.
+
+**Surprise orchestration** (the workshop closer): `whatsapp-callup` (parses "no puedo", marks `unavailable`) → `agent.chat` → `voice-suplente` (picks candidate, dials, sets `available` on yes) → next Sunday `weekly-digest` picks up the change. Four agents, one coach problem, end-to-end.
+
+## Testing the agents
+
+**`coach-stats`** (no integration deps):
+```bash
+cd struere && bunx struere chat coach-stats --message "¿cuántos jugadores activos tengo?" --json   # expect executionMeta.toolCalls includes list_players
+```
+Or open the SPA, click the Sparkles icon (sidebar) / FAB (mobile), use a suggestion or type `¿Quién marcó más puntos?`.
+
+**`whatsapp-callup`** (needs Kapso). First update a Player's `phone` to your real E.164:
+```bash
+cd struere && bunx struere data update <player-id> --data '{"phone":"+...."}'
+# then text voy / no puedo / capaz to the connected business number
+```
+
+**`voice-suplente`** (needs Twilio). Pick an active Player NOT in the next callup, set their phone as above, then:
+```bash
+bunx struere chat voice-suplente --message "Llama a un suplente para el próximo partido"
+# or trigger via WhatsApp orchestration: reply `no puedo` from a Player IN the next callup. Phone rings 10–20s.
+```
+
+**`weekly-digest`**:
+```bash
+bunx struere chat weekly-digest --message "Compila el digest"   # ad-hoc
+bunx struere triggers list                                       # verify cron registered (Sun 20:00 America/Santiago)
+```
+
+## ADRs
+
+- [`docs/adr/0001-callup-availability-as-source-of-truth.md`](./docs/adr/0001-callup-availability-as-source-of-truth.md) — `MatchCallup.availability` is the only collection; `playerIds[]` was dropped because the two drifted.
+- [`docs/adr/0002-flat-callup-tuples-at-storage.md`](./docs/adr/0002-flat-callup-tuples-at-storage.md) — Storage persists `Callup` as one row per `(matchId, playerId)` so agents can update one entry atomically; the in-memory dict from ADR 0001 still holds via `fromRows`/`toRows`.
+
+## License / credits
+
+Workshop authored by Marco Gómez ([Struere](https://struere.dev)) for **HACK@LATAM** (May 15–17, 2026). Live session: Tue May 6, 8:00 AM Sydney time, online, 30 min.
+
+This repo is the canonical worked example for the [Struere Voice Agent Cookbook](https://docs.struere.dev/integrations/voice-cookbook).
+
+Built with Bun, React 19, Vite, Zustand, Tailwind 4, and Struere SDK 0.14.8.
+
 </details>
 
 <details>
@@ -374,18 +343,18 @@ Proyecto del workshop para HACK@LATAM y referencia canónica del Voice Agent Coo
 
 ## Qué es esto
 
-Una herramienta para coaches de un club de voley (plantel, agenda, convocatorias, carga de entrenamiento, eventos en vivo, stats por jugador) construida como SPA en React + Vite + Zustand sobre [Struere](https://struere.dev) — 5 tipos de entidad, 4 agentes, 1 rol, 12 custom tools, 1 cron trigger. Strings de UI en español, tipos de dominio en inglés. Este repo es el ejemplo canónico referenciado desde el [Struere Voice Agent Cookbook](https://docs.struere.dev/integrations/voice-cookbook): cada patrón del cookbook (voice agent dual-mode, lints en sync-time, orquestación con `agent.chat`, almacenamiento en flat-tuples) está ejercitado acá sobre datos reales del voley.
+Una herramienta cotidiana para coaches de un club de voley (plantel, agenda, convocatorias, carga de entrenamiento, eventos en vivo, stats por jugador) que hoy corre con mocks en memoria. El workshop te lleva paso a paso a reemplazar los mocks con un backend potenciado por Struere: 5 tipos de entidad, 4 agentes, orquestación multi-canal (chat widget, WhatsApp inbound, voz outbound, digest semanal por email). Strings de UI en español, tipos de dominio en inglés. Esta rama (`main`) es el **punto de partida** — la PWA sobre mocks. Al terminar los tres prompts caés en `03-agent-automations`, el ejemplo canónico referenciado desde el [Struere Voice Agent Cookbook](https://docs.struere.dev/integrations/voice-cookbook).
 
 ## Ramas como pasos del workshop
 
-Las tres feature branches son los tres pasos del workshop; cada una es extensión estricta de la anterior, y `main` == `03-agent-automations`.
+`main` es el **paso 0** — el punto de partida. Cada feature branch es extensión estricta de la anterior; el estado final es `03-agent-automations`.
 
-| Rama | Paso | Qué se agrega |
+| Rama | Paso | Qué tiene |
 |---|---|---|
-| `main` | Estado final | Todo lo de abajo combinado (`origin/main` == `03-agent-automations`) |
-| `01-struere-setup` | Paso 1 | Struere CLI instalado, proyecto scaffoldeado con `struere init`, skill `struere-developer` cargado |
-| `02-cloud-database` | Paso 2 | 5 tipos de entidad definidos; SPA recableada de los mocks al SDK de Struere; `.env.example` + dev API key |
-| `03-agent-automations` | Paso 3 | 4 agentes + 12 tools + 1 rol + 1 cron trigger + widget de chat conectado a `coach-stats` — equivale a `main` |
+| `main` | Paso 0 — punto de partida | PWA de voley sobre mocks en memoria. Todavía no hay Struere. |
+| `01-struere-setup` | Paso 1 | + Struere CLI instalado y proyecto scaffoldeado (Prompt 1 te deja acá) |
+| `02-cloud-database` | Paso 2 | + 5 tipos de entidad + SPA recableada por el SDK de Struere (Prompt 2) |
+| `03-agent-automations` | Paso 3 — estado final | + 4 agentes + widget de chat orquestados end-to-end (Prompt 3) |
 
 `git checkout <branch>` para ver el estado de cualquier paso. Aparejá cada transición con un prompt de abajo: **Prompt 1** (`main` → `01-struere-setup`), **Prompt 2** (`01-struere-setup` → `02-cloud-database`), **Prompt 3** (`02-cloud-database` → `03-agent-automations`). Los prompts son byte-idénticos a los del workshop en vivo.
 
@@ -395,129 +364,30 @@ Las tres feature branches son los tres pasos del workshop; cada una es extensió
 git clone https://github.com/MarcoNaik/sportistics-indies.git
 cd sportistics-indies
 bun install
-cp .env.example .env.local   # completá VITE_STRUERE_API_KEY (mirá "Paso a paso de configuración")
-bun run dev
+bun run dev    # la PWA arranca con mocks en http://localhost:5173
 ```
 
-La SPA arranca vacía en `main` — las entidades vienen de tu entorno de dev de Struere, y un entorno fresco no tiene filas. Agregá un Player, Match o Training Session desde la UI; recargá — se persiste. Esa es la luz verde.
+Caés en `main` — la PWA corriendo con mocks en memoria. Agregá un Player, Match o Training Session desde la UI; todo funciona contra el store mockeado. Después corré el **Prompt 1** de abajo para bootstrappear Struere.
 
 ## Requisitos y cuentas a crear
 
-Los ítems 1–4 son obligatorios para la SPA + `coach-stats`; 5–7 son para los agentes de WhatsApp + voz + email.
-
 - [ ] **Bun ≥ 1.2** — https://bun.sh — nunca npm en este repo.
-- [ ] **Cuenta de Struere + organización** — https://struere.dev. Plan Pro (4 agentes > cap del free-tier).
-- [ ] **Struere CLI ≥ 0.14.8** — `bun install -g struere@latest`. 0.14.8 sumó lints en sync-time; las versiones más viejas necesitan workarounds que este material ya no cubre.
-- [ ] **Skill `struere-developer`** — `npx skills add MarcoNaik/struere-skill --all --yes` desde la raíz del repo. Fuente de verdad del SDK; los prompts asumen que está cargado.
-- [ ] **Cuenta de Twilio + número outbound de voz** — https://twilio.com. Potencia `voice-suplente`.
-- [ ] **Kapso/WhatsApp Business** — https://kapso.io. Potencia `whatsapp-callup`.
-- [ ] **Cuenta de Resend** — https://resend.com. Potencia `email.send` para el digest semanal.
-- [ ] **API key de OpenAI con acceso a Realtime API** — para `voice-suplente`, configurada a nivel de organización en Struere.
+- [ ] **Cuenta de Struere + organización (plan Pro para 4+ agentes)** — https://struere.dev
+- [ ] **Cuenta de Twilio + número con outbound habilitado** — https://twilio.com — **(solo necesario para la demo en vivo del agente de voz; podés completar el workshop sin esto)**
+- [ ] **Meta WhatsApp Business + conexión Kapso** — https://kapso.io — **(solo necesario para la demo en vivo del agente de WhatsApp)**
 
-## Paso a paso de configuración
+Eso es todo. Struere provee internamente el email y el modelo Realtime.
 
-Corré en orden desde un clone fresco.
+## Configuración
 
-1. **Repo + frontend.** `bun run dev` va a fail-fast hasta que el paso 3 complete `VITE_STRUERE_API_KEY`. Dejalo corriendo.
-   ```bash
-   git clone https://github.com/MarcoNaik/sportistics-indies.git && cd sportistics-indies && bun install && cp .env.example .env.local && bun run dev
-   ```
-2. **Proyecto de Struere + login.** `struere init` es para repos frescos; este clone ya tiene el proyecto — usá `pull`.
-   ```bash
-   struere logout && struere login
-   cd struere && struere pull && bunx struere sync
-   ```
-3. **Crear la dev API key para la SPA**, después pegala en `.env.local` (gitignored — nunca lo commitees).
-   ```bash
-   cd struere && bunx struere keys create --name "vite-spa-dev" --env development --json
-   # copiá el campo `key` → VITE_STRUERE_API_KEY=sk_... en .env.local
-   ```
-4. **Conectar Twilio** (potencia `voice-suplente`). Atá el número directo al agente.
-   ```bash
-   bunx struere integration twilio --account-sid <SID> --auth-token <TOKEN> --phone-number <+E164> --agent voice-suplente --yes
-   ```
-5. **Conectar WhatsApp vía Kapso** (potencia `whatsapp-callup`). El comando del medio abre un link de setup hosteado por Kapso.
-   ```bash
-   cd struere
-   bunx struere whatsapp enable --environment development
-   bunx struere whatsapp setup --environment development
-   bunx struere whatsapp set-agent --slug whatsapp-callup --environment development
-   ```
-6. **Conectar Resend** (potencia `weekly-digest`).
-   ```bash
-   bunx struere integration resend --api-key <KEY> --from-email <EMAIL> --yes
-   ```
-7. **Verificar.** `status` debería mostrar **4 agents, 5 entity types, 1 role, 12 tools, 1 trigger**. Los warnings de sync sobre `whatsapp.send` / `voice.call` / `email.send` se esperan si salteaste un paso.
-   ```bash
-   bunx struere status && bunx struere doctor
-   ```
-
-Si `bunx struere sync` falla con `Access denied: you are not a member of organization X`, te logueaste con la cuenta equivocada — `struere logout && struere login` de nuevo.
-
-## Dominio y arquitectura
-
-Glosario completo en [`CONTEXT.md`](./CONTEXT.md).
-
-**Cinco tipos de entidad** (Struere = la base de datos; SPA + agentes comparten una sola fuente de verdad):
-
-- **Player** — persona del plantel; `category` Sub-14|Sub-16|Sub-18|Adult (Youth requiere `guardianName`+`guardianPhone`); `status` active|injured|inactive.
-- **ClubMatch** — partido agendado (`date`, `time`, `opponent`, `location`, `competition`, `status` scheduled|live|finished).
-- **Callup** — flat-tuple `(matchId, playerId, availability)`; availability pending|available|unavailable|maybe; ausencia-de-fila = no está en la convocatoria.
-- **TrainingSession** — array-of-records: una entidad por sesión con `loads[]` (por jugador presente: `present`, `minutes`, `rpe`, `fatigue`, `pain`).
-- **VolleyballEvent** — acción del partido (`actionType`, `result`, `pointFor`, `playerId`, `matchId`); `PlayerStats` se deriva, nunca se almacena.
-
-**Dos ADRs** (prosa completa en [`docs/adr/`](./docs/adr/)):
-
-- [**ADR 0001**](./docs/adr/0001-callup-availability-as-source-of-truth.md) — `MatchCallup.availability` es la única fuente de verdad en el frontend; el viejo `playerIds[]` desapareció.
-- [**ADR 0002**](./docs/adr/0002-flat-callup-tuples-at-storage.md) — El storage guarda Callup como una fila por `(matchId, playerId)` aunque en memoria sea un `Record<playerId, Availability>`. `Callup.fromRows`/`toRows` es el único mediador. TrainingSession NO sigue este patrón (acceso de sesión completa).
-
-**Cuatro agentes** (material más profundo en [`struere/CLAUDE.md`](./struere/CLAUDE.md)):
-
-- **`coach-stats`** — widget de chat (read-only en español, en cada página rutada); lee players/matches/events, agrega stats al vuelo.
-- **`whatsapp-callup`** — WhatsApp inbound; `voy`/`no puedo`/`capaz` → matchea phone → próximo partido → actualiza tupla de Callup → confirma.
-- **`voice-suplente`** — Twilio outbound + OpenAI Realtime; llama a un Player active no convocado preguntando "¿podés jugar?"; si dice sí, setea availability `available`. Un solo agente, dual mode (orchestrator + sesión de voz).
-- **`weekly-digest`** — cron domingo 20:00 `America/Santiago`; `build_digest` → `email.send` al coach.
-
-**Orquestación sorpresa** (el cierre del workshop): `whatsapp-callup` (parsea "no puedo", marca `unavailable`) → `agent.chat` → `voice-suplente` (elige candidato, disca, setea `available` si dice sí) → el siguiente `weekly-digest` del domingo levanta el cambio. Cuatro agentes, un problema real, end-to-end.
-
-## Cómo probar los agentes
-
-**`coach-stats`** (sin deps de integración):
 ```bash
-cd struere && bunx struere chat coach-stats --message "¿cuántos jugadores activos tengo?" --json   # esperá que executionMeta.toolCalls incluya list_players
-```
-O abrí la SPA, clickeá el icono de Sparkles (sidebar) / FAB (mobile), usá una sugerencia o tipeá `¿Quién marcó más puntos?`.
-
-**`whatsapp-callup`** (necesita Kapso — paso 5). Primero actualizá el `phone` de un Player a tu número real en E.164:
-```bash
-cd struere && bunx struere data update <player-id> --data '{"phone":"+...."}'
-# después mandá voy / no puedo / capaz al número de Business conectado
+git clone https://github.com/MarcoNaik/sportistics-indies.git
+cd sportistics-indies
+bun install
+bun run dev    # la PWA arranca con mocks en http://localhost:5173
 ```
 
-**`voice-suplente`** (necesita Twilio — paso 4). Elegí un Player active que NO esté en la próxima callup, seteá su phone como arriba, después:
-```bash
-bunx struere chat voice-suplente --message "Llama a un suplente para el próximo partido"
-# o disparalo vía orquestación de WhatsApp: respondé `no puedo` desde un Player que SÍ esté en la próxima callup. Suena en 10–20s.
-```
-
-**`weekly-digest`** (necesita Resend — paso 6):
-```bash
-bunx struere chat weekly-digest --message "Compila el digest"   # ad-hoc
-bunx struere triggers list                                       # verificá cron registrado (Dom 20:00 America/Santiago)
-```
-
-## ADRs
-
-- [`docs/adr/0001-callup-availability-as-source-of-truth.md`](./docs/adr/0001-callup-availability-as-source-of-truth.md) — `MatchCallup.availability` es la única colección; `playerIds[]` se dropeó porque las dos se desincronizaban.
-- [`docs/adr/0002-flat-callup-tuples-at-storage.md`](./docs/adr/0002-flat-callup-tuples-at-storage.md) — El storage persiste `Callup` como una fila por `(matchId, playerId)` para que los agentes puedan actualizar una entrada atómicamente; el dict en memoria del ADR 0001 sigue valiendo vía `fromRows`/`toRows`.
-
-## Licencia / créditos
-
-Workshop autorado por Marco Gómez ([Struere](https://struere.dev)) para **HACK@LATAM** (15–17 de mayo de 2026). Sesión en vivo: martes 6 de mayo, 8:00 AM hora de Sydney, online, 30 min.
-
-Este repo es el ejemplo canónico para el [Struere Voice Agent Cookbook](https://docs.struere.dev/integrations/voice-cookbook).
-
-Construido con Bun, React 19, Vite, Zustand, Tailwind 4, y Struere SDK 0.14.8.
+Para arrancar el workshop, abrí Claude Code en el repo y pegá el **Prompt 1** de abajo. El prompt instala el Struere CLI, te loguea, inicializa el proyecto y te deja en el estado de la rama `01-struere-setup`.
 
 ## Los tres prompts
 
@@ -525,22 +395,12 @@ Estos son prompts de instrucciones para AI que se copy-pastean en Claude Code (c
 
 > **Lectura obligatoria antes de correr estos prompts.** Voice agents → https://docs.struere.dev/integrations/voice-cookbook ; gotchas de plataforma (sintaxis de filtros, soft-delete, schema cerrado) → https://docs.struere.dev/platform/gotchas ; los footguns por integración están en la página de cada integración. Modos de falla de voz específicamente: https://docs.struere.dev/integrations/voice#footguns.
 
-Ramas y prompts se aparejan 1-a-1:
-
-| Paso | Rama | Prompt |
-|------|------|--------|
-| 1 | `01-struere-setup` | Onboarding de Struere |
-| 2 | `02-cloud-database` | Definir entidades + recablear la SPA por Struere |
-| 3 | `03-agent-automations` | Construir 4 agentes + chat widget |
-
 ---
 
 ### **Prompt 1 — Struere setup**
 
 > Rama en la que estás: `main` → termina en `01-struere-setup`.
 > Tiempo: ~2 min.
-
-Pegá esto en Claude Code (con el skill `struere-developer` instalado) arrancando desde la rama `main`. El agente te deja en `01-struere-setup`.
 
 ```
 I want to set up a Struere project (https://struere.dev) — an AI agent platform where I define agents, data types, roles, and automations as TypeScript code.
@@ -584,8 +444,6 @@ Documentation: https://docs.struere.dev/llms.txt
 
 > Rama en la que estás: `01-struere-setup` → termina en `02-cloud-database`.
 > Tiempo: ~5 min.
-
-Pegá esto en Claude Code (con el skill `struere-developer` instalado) arrancando desde la rama `01-struere-setup`. El agente te deja en `02-cloud-database`.
 
 ```
 You are building the storage layer of Sportistics on Struere. Requires Struere CLI ≥ 0.14.8 — older versions need additional casts and patches that this prompt does not cover; assume 0.14.8 throughout. The frontend (Vite + React + Zustand) currently runs on in-memory mocks. After this prompt, the SPA reads and writes through Struere instead. The `struere-developer` skill at `.claude/skills/struere-developer` is the SDK source of truth — consult it for `defineData`, `entity.query` semantics, and CLI workflow. Do not duplicate skill content; reference it.
@@ -674,8 +532,6 @@ The final repo state for `02-cloud-database` matches the branch on disk. Commit 
 > Rama en la que estás: `02-cloud-database` → termina en `03-agent-automations`.
 > Tiempo: ~5 min.
 
-Pegá esto en Claude Code (con el skill `struere-developer` instalado) arrancando desde la rama `02-cloud-database`. El agente te deja en `03-agent-automations`.
-
 ```
 You are building the agent layer of Sportistics on Struere. Five entity types exist (`player`, `club-match`, `callup`, `training-session`, `volleyball-event`) and the SPA reads/writes through `src/lib/struere.ts`. Now you are adding 4 agents that act on those entities across chat, WhatsApp, voice, and cron+email — and wiring the existing chat widget in the SPA to the first one. The `struere-developer` skill at `.claude/skills/struere-developer` is the SDK source of truth — consult it for `defineAgent`, `defineTools`, `defineRole`, `defineTrigger`, and the agent runtime's tool-call shape. Do not duplicate skill content.
 
@@ -731,5 +587,87 @@ Then build, in order:
 
 The final repo state for `03-agent-automations` matches the branch on disk. Commit when sync is green and the smoke test passes. UI copy Spanish; identifiers English; bun, never npm; no comments in any code.
 ```
+
+## Testing de canales en vivo (opcional)
+
+Los dos prompts dejan el widget de chat funcionando sin integraciones conectadas. Para ejercitar WhatsApp inbound y voz outbound:
+
+```bash
+# Twilio voice
+bunx struere integration twilio --account-sid <SID> --auth-token <TOKEN> \
+  --phone-number <+E164> --agent voice-suplente --yes
+
+# WhatsApp vía Kapso
+bunx struere whatsapp enable --environment development
+bunx struere whatsapp setup --environment development
+bunx struere whatsapp set-agent --slug whatsapp-callup --environment development
+```
+
+Mirá el [Struere Voice Agent Cookbook](https://docs.struere.dev/integrations/voice-cookbook) para el setup completo de voz + detalles de routing de WhatsApp.
+
+## Dominio y arquitectura
+
+Glosario completo en [`CONTEXT.md`](./CONTEXT.md).
+
+**Cinco tipos de entidad** (Struere = la base de datos; SPA + agentes comparten una sola fuente de verdad):
+
+- **Player** — persona del plantel; `category` Sub-14|Sub-16|Sub-18|Adult (Youth requiere `guardianName`+`guardianPhone`); `status` active|injured|inactive.
+- **ClubMatch** — partido agendado (`date`, `time`, `opponent`, `location`, `competition`, `status` scheduled|live|finished).
+- **Callup** — flat-tuple `(matchId, playerId, availability)`; availability pending|available|unavailable|maybe; ausencia-de-fila = no está en la convocatoria.
+- **TrainingSession** — array-of-records: una entidad por sesión con `loads[]` (por jugador presente: `present`, `minutes`, `rpe`, `fatigue`, `pain`).
+- **VolleyballEvent** — acción del partido (`actionType`, `result`, `pointFor`, `playerId`, `matchId`); `PlayerStats` se deriva, nunca se almacena.
+
+**Dos ADRs** (prosa completa en [`docs/adr/`](./docs/adr/)):
+
+- [**ADR 0001**](./docs/adr/0001-callup-availability-as-source-of-truth.md) — `MatchCallup.availability` es la única fuente de verdad en el frontend; el viejo `playerIds[]` desapareció.
+- [**ADR 0002**](./docs/adr/0002-flat-callup-tuples-at-storage.md) — El storage guarda Callup como una fila por `(matchId, playerId)` aunque en memoria sea un `Record<playerId, Availability>`. `Callup.fromRows`/`toRows` es el único mediador. TrainingSession NO sigue este patrón (acceso de sesión completa).
+
+**Cuatro agentes** (material más profundo en [`struere/CLAUDE.md`](./struere/CLAUDE.md)):
+
+- **`coach-stats`** — widget de chat (read-only en español, en cada página rutada); lee players/matches/events, agrega stats al vuelo.
+- **`whatsapp-callup`** — WhatsApp inbound; `voy`/`no puedo`/`capaz` → matchea phone → próximo partido → actualiza tupla de Callup → confirma.
+- **`voice-suplente`** — Twilio outbound + OpenAI Realtime; llama a un Player active no convocado preguntando "¿podés jugar?"; si dice sí, setea availability `available`. Un solo agente, dual mode (orchestrator + sesión de voz).
+- **`weekly-digest`** — cron domingo 20:00 `America/Santiago`; `build_digest` → `email.send` al coach.
+
+**Orquestación sorpresa** (el cierre del workshop): `whatsapp-callup` (parsea "no puedo", marca `unavailable`) → `agent.chat` → `voice-suplente` (elige candidato, disca, setea `available` si dice sí) → el siguiente `weekly-digest` del domingo levanta el cambio. Cuatro agentes, un problema real, end-to-end.
+
+## Cómo probar los agentes
+
+**`coach-stats`** (sin deps de integración):
+```bash
+cd struere && bunx struere chat coach-stats --message "¿cuántos jugadores activos tengo?" --json   # esperá que executionMeta.toolCalls incluya list_players
+```
+O abrí la SPA, clickeá el icono de Sparkles (sidebar) / FAB (mobile), usá una sugerencia o tipeá `¿Quién marcó más puntos?`.
+
+**`whatsapp-callup`** (necesita Kapso). Primero actualizá el `phone` de un Player a tu número real en E.164:
+```bash
+cd struere && bunx struere data update <player-id> --data '{"phone":"+...."}'
+# después mandá voy / no puedo / capaz al número de Business conectado
+```
+
+**`voice-suplente`** (necesita Twilio). Elegí un Player active que NO esté en la próxima callup, seteá su phone como arriba, después:
+```bash
+bunx struere chat voice-suplente --message "Llama a un suplente para el próximo partido"
+# o disparalo vía orquestación de WhatsApp: respondé `no puedo` desde un Player que SÍ esté en la próxima callup. Suena en 10–20s.
+```
+
+**`weekly-digest`**:
+```bash
+bunx struere chat weekly-digest --message "Compila el digest"   # ad-hoc
+bunx struere triggers list                                       # verificá cron registrado (Dom 20:00 America/Santiago)
+```
+
+## ADRs
+
+- [`docs/adr/0001-callup-availability-as-source-of-truth.md`](./docs/adr/0001-callup-availability-as-source-of-truth.md) — `MatchCallup.availability` es la única colección; `playerIds[]` se dropeó porque las dos se desincronizaban.
+- [`docs/adr/0002-flat-callup-tuples-at-storage.md`](./docs/adr/0002-flat-callup-tuples-at-storage.md) — El storage persiste `Callup` como una fila por `(matchId, playerId)` para que los agentes puedan actualizar una entrada atómicamente; el dict en memoria del ADR 0001 sigue valiendo vía `fromRows`/`toRows`.
+
+## Licencia / créditos
+
+Workshop autorado por Marco Gómez ([Struere](https://struere.dev)) para **HACK@LATAM** (15–17 de mayo de 2026). Sesión en vivo: martes 6 de mayo, 8:00 AM hora de Sydney, online, 30 min.
+
+Este repo es el ejemplo canónico para el [Struere Voice Agent Cookbook](https://docs.struere.dev/integrations/voice-cookbook).
+
+Construido con Bun, React 19, Vite, Zustand, Tailwind 4, y Struere SDK 0.14.8.
 
 </details>
