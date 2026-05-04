@@ -190,8 +190,8 @@ export default defineTools([
     handler: async (args, context, struere, fetch) => {
       const matchId = args.matchId as string
       const matchEntity = await struere.entity.get({ id: matchId })
-      const callupPage = await struere.entity.query({ type: 'callup', filters: { matchId }, limit: 200, status: 'active' })
-      const eventsPage = await struere.entity.query({ type: 'volleyball-event', filters: { matchId }, limit: 1000, status: 'active' })
+      const callupPage = await struere.entity.query({ type: 'callup', filters: { 'data.matchId': matchId }, limit: 200, status: 'active' })
+      const eventsPage = await struere.entity.query({ type: 'volleyball-event', filters: { 'data.matchId': matchId }, limit: 1000, status: 'active' })
       const callups = (callupPage.data ?? callupPage).map((e: any) => ({ id: e.id, ...(e.data ?? e) }))
       const events = (eventsPage.data ?? eventsPage).map((e: any) => ({ id: e.id, ...(e.data ?? e) }))
       let home = 0
@@ -246,7 +246,7 @@ export default defineTools([
       const value = args.value as string
       const page = await struere.entity.query({
         type: 'callup',
-        filters: { matchId, playerId },
+        filters: { 'data.matchId': matchId, 'data.playerId': playerId },
         limit: 1,
         status: 'active',
       })
@@ -272,7 +272,7 @@ export default defineTools([
     },
     handler: async (args, context, struere, fetch) => {
       const matchId = args.matchId as string
-      const callupPage = await struere.entity.query({ type: 'callup', filters: { matchId }, limit: 500, status: 'active' })
+      const callupPage = await struere.entity.query({ type: 'callup', filters: { 'data.matchId': matchId }, limit: 500, status: 'active' })
       const usedIds = new Set<string>((callupPage.data ?? callupPage).map((e: any) => (e.data ?? e).playerId))
       const playersPage = await struere.entity.query({ type: 'player', limit: 500, status: 'active' })
       const players = (playersPage.data ?? playersPage).map((e: any) => ({ id: e.id, ...(e.data ?? e) }))

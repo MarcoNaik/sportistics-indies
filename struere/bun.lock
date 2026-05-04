@@ -5,7 +5,7 @@
       "name": "struere",
       "devDependencies": {
         "bun-types": "^1.0.0",
-        "struere": "0.14.4",
+        "struere": "^0.14.5",
         "typescript": "^5.3.0",
       },
     },
@@ -187,7 +187,7 @@
 
     "strip-ansi": ["strip-ansi@7.2.0", "", { "dependencies": { "ansi-regex": "^6.2.2" } }, "sha512-yDPMNjp4WyfYBkHnjIRLfca1i6KMyGCtsVgoKe/z1+6vukgaENdgGBZt+ZmKPc4gavvEZ5OgHfHdrazhgNyG7w=="],
 
-    "struere": ["struere@0.14.4", "", { "dependencies": { "@inquirer/prompts": "^7.0.0", "chalk": "^5.3.0", "chokidar": "^3.5.3", "commander": "^12.0.0", "convex": "^1.33.1", "ora": "^8.0.0", "yaml": "^2.3.4" }, "bin": { "struere": "dist/bin/struere.js" } }, "sha512-vyW2ao8vqAUToQojfNChU66MZ2WNuCC7GZOLm3zCNJuyHKslFnXeV5BDoRI/RMxi9udYLCyj6dCYzAONcAOf2g=="],
+    "struere": ["struere@0.14.5", "", { "dependencies": { "@inquirer/prompts": "^7.0.0", "chalk": "^5.3.0", "chokidar": "^3.5.3", "commander": "^12.0.0", "convex": "^1.33.1", "ora": "^8.0.0", "yaml": "^2.3.4" }, "bin": { "struere": "dist/bin/struere.js" } }, "sha512-Wbego4fjoPhvihG054bv1a1NOEoETKxm4dKJ3Im36wHdcWBTcssAyFx7lNhY4t9XfIk3c4gwWvImUyAlH9qsXg=="],
 
     "to-regex-range": ["to-regex-range@5.0.1", "", { "dependencies": { "is-number": "^7.0.0" } }, "sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ=="],
 

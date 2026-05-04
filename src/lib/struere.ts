@@ -103,7 +103,7 @@ type CallupRowData = Omit<CallupRow, 'id'>
 
 async function findCallupRowByTuple(matchId: string, playerId: string): Promise<Entity<CallupRowData> | null> {
   const page = await client.data.query<CallupRowData>('callup', {
-    filters: { matchId: { $eq: matchId }, playerId: { $eq: playerId } },
+    filters: { 'data.matchId': matchId, 'data.playerId': playerId },
     limit: 1,
     status: 'active',
   })
@@ -135,7 +135,7 @@ const callup = {
   },
   removeForMatch: async (matchId: string): Promise<void> => {
     const page = await client.data.query<CallupRowData>('callup', {
-      filters: { matchId: { $eq: matchId } },
+      filters: { 'data.matchId': matchId },
       limit: 1000,
       status: 'active',
     })
@@ -143,7 +143,7 @@ const callup = {
   },
   removeForPlayer: async (playerId: string): Promise<void> => {
     const page = await client.data.query<CallupRowData>('callup', {
-      filters: { playerId: { $eq: playerId } },
+      filters: { 'data.playerId': playerId },
       limit: 1000,
       status: 'active',
     })
