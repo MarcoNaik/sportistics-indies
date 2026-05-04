@@ -20,7 +20,7 @@ function toData<T extends { id: string }>(value: T): WithoutId<T> {
 
 const player = {
   list: async (): Promise<Player[]> => {
-    const page = await client.data.list<WithoutId<Player>>('player', { limit: 100, status: 'active' })
+    const page = await client.data.list<WithoutId<Player>>('player', { limit: 100 })
     return page.data.map((e) => fromEntity<Player>(e))
   },
   get: async (id: string): Promise<Player> => {
@@ -42,7 +42,7 @@ const player = {
 
 const clubMatch = {
   list: async (): Promise<ClubMatch[]> => {
-    const page = await client.data.list<WithoutId<ClubMatch>>('club-match', { limit: 100, status: 'active' })
+    const page = await client.data.list<WithoutId<ClubMatch>>('club-match', { limit: 100 })
     return page.data.map((e) => fromEntity<ClubMatch>(e))
   },
   get: async (id: string): Promise<ClubMatch> => {
@@ -77,7 +77,7 @@ function trainingToData(session: TrainingSession): TrainingRowData {
 
 const trainingSession = {
   list: async (): Promise<TrainingSession[]> => {
-    const page = await client.data.list<TrainingRowData>('training-session', { limit: 100, status: 'active' })
+    const page = await client.data.list<TrainingRowData>('training-session', { limit: 100 })
     return page.data.map(trainingFromEntity)
   },
   get: async (id: string): Promise<TrainingSession> => {
@@ -105,14 +105,13 @@ async function findCallupRowByTuple(matchId: string, playerId: string): Promise<
   const page = await client.data.query<CallupRowData>('callup', {
     filters: { 'data.matchId': matchId, 'data.playerId': playerId },
     limit: 1,
-    status: 'active',
   })
   return page.data[0] ?? null
 }
 
 const callup = {
   list: async (): Promise<MatchCallup[]> => {
-    const page = await client.data.list<CallupRowData>('callup', { limit: 1000, status: 'active' })
+    const page = await client.data.list<CallupRowData>('callup', { limit: 1000 })
     const rows: CallupRow[] = page.data.map((e) => ({ id: e.id, ...e.data }))
     return Callup.fromRows(rows)
   },
@@ -137,7 +136,6 @@ const callup = {
     const page = await client.data.query<CallupRowData>('callup', {
       filters: { 'data.matchId': matchId },
       limit: 1000,
-      status: 'active',
     })
     await Promise.all(page.data.map((e) => client.data.delete('callup', e.id)))
   },
@@ -145,7 +143,6 @@ const callup = {
     const page = await client.data.query<CallupRowData>('callup', {
       filters: { 'data.playerId': playerId },
       limit: 1000,
-      status: 'active',
     })
     await Promise.all(page.data.map((e) => client.data.delete('callup', e.id)))
   },
@@ -153,7 +150,7 @@ const callup = {
 
 const volleyballEvent = {
   list: async (): Promise<VolleyballEvent[]> => {
-    const page = await client.data.list<WithoutId<VolleyballEvent>>('volleyball-event', { limit: 100, status: 'active' })
+    const page = await client.data.list<WithoutId<VolleyballEvent>>('volleyball-event', { limit: 100 })
     return page.data.map((e) => fromEntity<VolleyballEvent>(e))
   },
   get: async (id: string): Promise<VolleyballEvent> => {

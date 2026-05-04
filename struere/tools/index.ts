@@ -79,7 +79,7 @@ export default defineTools([
       },
     },
     handler: async (args, context, struere, fetch) => {
-      const page = await struere.entity.query({ type: 'volleyball-event', limit: 1000, status: 'active' })
+      const page = await struere.entity.query({ type: 'volleyball-event', limit: 1000 })
       const rows: any[] = page.data ?? page
       const events = rows.map((e) => ({ id: e.id, ...(e.data ?? e) }))
       const matchId = args.matchId as string | undefined
@@ -120,7 +120,7 @@ export default defineTools([
       },
     },
     handler: async (args, context, struere, fetch) => {
-      const page = await struere.entity.query({ type: 'player', limit: 500, status: 'active' })
+      const page = await struere.entity.query({ type: 'player', limit: 500 })
       const rows: any[] = page.data ?? page
       const players = rows.map((e) => ({ id: e.id, ...(e.data ?? e) }))
       const status = args.status as string | undefined
@@ -139,7 +139,7 @@ export default defineTools([
       },
     },
     handler: async (args, context, struere, fetch) => {
-      const page = await struere.entity.query({ type: 'club-match', limit: 500, status: 'active' })
+      const page = await struere.entity.query({ type: 'club-match', limit: 500 })
       const rows: any[] = page.data ?? page
       const matches = rows.map((e) => ({ id: e.id, ...(e.data ?? e) }))
       const status = args.status as string | undefined
@@ -161,7 +161,7 @@ export default defineTools([
       },
     },
     handler: async (args, context, struere, fetch) => {
-      const page = await struere.entity.query({ type: 'player', limit: 500, status: 'active' })
+      const page = await struere.entity.query({ type: 'player', limit: 500 })
       const rows: any[] = page.data ?? page
       const players = rows.map((e) => ({ id: e.id, ...(e.data ?? e) }))
       const name = (args.name as string | undefined)?.toLowerCase()
@@ -190,8 +190,8 @@ export default defineTools([
     handler: async (args, context, struere, fetch) => {
       const matchId = args.matchId as string
       const matchEntity = await struere.entity.get({ id: matchId })
-      const callupPage = await struere.entity.query({ type: 'callup', filters: { 'data.matchId': matchId }, limit: 200, status: 'active' })
-      const eventsPage = await struere.entity.query({ type: 'volleyball-event', filters: { 'data.matchId': matchId }, limit: 1000, status: 'active' })
+      const callupPage = await struere.entity.query({ type: 'callup', filters: { 'data.matchId': matchId }, limit: 200 })
+      const eventsPage = await struere.entity.query({ type: 'volleyball-event', filters: { 'data.matchId': matchId }, limit: 1000 })
       const callups = (callupPage.data ?? callupPage).map((e: any) => ({ id: e.id, ...(e.data ?? e) }))
       const events = (eventsPage.data ?? eventsPage).map((e: any) => ({ id: e.id, ...(e.data ?? e) }))
       let home = 0
@@ -221,7 +221,7 @@ export default defineTools([
     },
     handler: async (args, context, struere, fetch) => {
       const phone = args.phone as string
-      const page = await struere.entity.query({ type: 'player', limit: 500, status: 'active' })
+      const page = await struere.entity.query({ type: 'player', limit: 500 })
       const rows: any[] = page.data ?? page
       const match = rows.map((e) => ({ id: e.id, ...(e.data ?? e) })).find((p) => p.phone === phone || p.guardianPhone === phone)
       return { player: match ?? null }
@@ -248,7 +248,6 @@ export default defineTools([
         type: 'callup',
         filters: { 'data.matchId': matchId, 'data.playerId': playerId },
         limit: 1,
-        status: 'active',
       })
       const existing = (page.data ?? page)[0]
       if (existing) {
@@ -272,9 +271,9 @@ export default defineTools([
     },
     handler: async (args, context, struere, fetch) => {
       const matchId = args.matchId as string
-      const callupPage = await struere.entity.query({ type: 'callup', filters: { 'data.matchId': matchId }, limit: 500, status: 'active' })
+      const callupPage = await struere.entity.query({ type: 'callup', filters: { 'data.matchId': matchId }, limit: 500 })
       const usedIds = new Set<string>((callupPage.data ?? callupPage).map((e: any) => (e.data ?? e).playerId))
-      const playersPage = await struere.entity.query({ type: 'player', limit: 500, status: 'active' })
+      const playersPage = await struere.entity.query({ type: 'player', limit: 500 })
       const players = (playersPage.data ?? playersPage).map((e: any) => ({ id: e.id, ...(e.data ?? e) }))
       const candidates = players.filter((p: any) => p.status === 'active' && !usedIds.has(p.id))
       return { count: candidates.length, candidates }
@@ -295,7 +294,7 @@ export default defineTools([
     handler: async (args, context, struere, fetch) => {
       const from = args.from as string
       const to = args.to as string
-      const page = await struere.entity.query({ type: 'volleyball-event', limit: 1000, status: 'active' })
+      const page = await struere.entity.query({ type: 'volleyball-event', limit: 1000 })
       const rows: any[] = page.data ?? page
       const events = rows.map((e) => ({ id: e.id, ...(e.data ?? e) })).filter((e: any) => {
         const ts = e.createdAt ?? ''
@@ -322,13 +321,13 @@ export default defineTools([
       const fromDate = from.slice(0, 10)
       const toDate = to.slice(0, 10)
 
-      const eventsPage = await struere.entity.query({ type: 'volleyball-event', limit: 1000, status: 'active' })
+      const eventsPage = await struere.entity.query({ type: 'volleyball-event', limit: 1000 })
       const events = (eventsPage.data ?? eventsPage).map((e: any) => ({ id: e.id, ...(e.data ?? e) }))
-      const matchesPage = await struere.entity.query({ type: 'club-match', limit: 500, status: 'active' })
+      const matchesPage = await struere.entity.query({ type: 'club-match', limit: 500 })
       const matches = (matchesPage.data ?? matchesPage).map((e: any) => ({ id: e.id, ...(e.data ?? e) }))
-      const sessionsPage = await struere.entity.query({ type: 'training-session', limit: 500, status: 'active' })
+      const sessionsPage = await struere.entity.query({ type: 'training-session', limit: 500 })
       const trainingSessions = (sessionsPage.data ?? sessionsPage).map((e: any) => ({ id: e.id, ...(e.data ?? e) }))
-      const playersPage = await struere.entity.query({ type: 'player', limit: 500, status: 'active' })
+      const playersPage = await struere.entity.query({ type: 'player', limit: 500 })
       const players = (playersPage.data ?? playersPage).map((e: any) => ({ id: e.id, ...(e.data ?? e) }))
 
       const playerById: Record<string, any> = {}
